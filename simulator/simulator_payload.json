@@ -1,0 +1,6 @@
+{
+  "eventId": "Congestion",
+  "timeHorizon": 60,
+  "targetUE": "imsi-001010123456789"
+}
+

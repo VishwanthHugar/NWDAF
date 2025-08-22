@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/NWDAF.dir/AnalyticsInfoService.cpp.o CMakeFiles/NWDAF.dir/CMakeFiles/3.28.3/CompilerIdCXX/CMakeCXXCompilerId.cpp.o CMakeFiles/NWDAF.dir/CongestionAnalytics.cpp.o CMakeFiles/NWDAF.dir/NWDAF.cpp.o CMakeFiles/NWDAF.dir/main.cpp.o -o /mnt/d/My_Downloads/test/learning_C_plus_plus/NWDAF/bin/NWDAF 

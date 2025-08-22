@@ -1,0 +1,4 @@
+/mnt/d/My_Downloads/test/learning_C_plus_plus/NWDAF/source/CMakeFiles/NWDAF.dir
+/mnt/d/My_Downloads/test/learning_C_plus_plus/NWDAF/source/CMakeFiles/clean-all.dir
+/mnt/d/My_Downloads/test/learning_C_plus_plus/NWDAF/source/CMakeFiles/edit_cache.dir
+/mnt/d/My_Downloads/test/learning_C_plus_plus/NWDAF/source/CMakeFiles/rebuild_cache.dir
