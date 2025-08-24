@@ -365,3 +365,4 @@ FodyWeavers.xsd
 /build/CMakeFiles
 /build/cmake_install.cmake
 /build/Makefile
+/source/CMakeFiles/*
