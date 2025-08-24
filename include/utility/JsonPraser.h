@@ -2,7 +2,7 @@
 #define _INCLUDE_JSONPARSER_H
 
 #include "../3rdparty/json.hpp"
-#include "../../header/KPIData.h"
+#include "../KPIData.h"
 #include <string>
 #include <optional>
 

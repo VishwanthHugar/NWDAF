@@ -66,6 +66,12 @@ public:
         std::lock_guard<std::mutex> lk(m);
         return closed;
     }
+
+    // Get current size of the queue
+    size_t size() {
+        std::lock_guard<std::mutex> lk(m);
+        return q.size();
+    }
 };
 
 #endif // _INCLUDE_SafeQueue_H

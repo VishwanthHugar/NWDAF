@@ -11,7 +11,7 @@
 #include <thread>
 #include <algorithm>
 
-#include "../header/3rdparty/json.hpp"
+#include "3rdparty/json.hpp"
 #include <unordered_map>
 #include <string>
 #include <optional>

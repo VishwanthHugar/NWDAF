@@ -1,17 +1,19 @@
 #ifndef _INCLUDE_NWDAF_COLLECTION_SERVER_H
 #define _INCLUDE_NWDAF_COLLECTION_SERVER_H
 
-#include "SafeQueue.h"
 #include "NWDAFCollector.h"
-#include "DataProcessor.h"
-#include "collection/Collectors.h"
-#include <memory>
+#include "NWDAFProcessor.h"
+#include "SafeQueue.h"
+#include "AnalyticsEvent.h"
+#include "PostgresEventRepository.h"
+#include "Collectors.h"
 
 class NWDAFCollectionServer {
 private:
     SafeQueue<std::shared_ptr<AnalyticsEvent>> mQueue;
+    std::shared_ptr<IEventRepository> mRepository;
     NWDAFCollector mNWDAFCollector;
-    DataProcessor mProcessor;
+    NWDAFProcessor mProcessor;
 
 public:
     NWDAFCollectionServer();

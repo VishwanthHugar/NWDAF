@@ -1,4 +1,5 @@
-#include "../header/ThreadPoolManager.h"
+#include "ThreadPoolManager.h"
+#include "Logger.h"
 
 ThreadPoolManager::ThreadPoolManager(size_t minT, size_t maxT, ThreadPool& wp)
     : minThreads(minT), maxThreads(maxT), workerPool(wp), running(false) {

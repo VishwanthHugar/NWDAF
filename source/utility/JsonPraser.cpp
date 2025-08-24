@@ -1,6 +1,6 @@
 #include <ctime>
-#include "../../header/utility/JsonPraser.h"
-#include "../../header/Logger.h"
+#include "JsonPraser.h"
+#include "Logger.h"
 
 std::optional<KPIData> JsonParser::parseKPIRequest(const std::string& jsonStr, std::string& requestId) {
     try {

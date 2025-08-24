@@ -1,33 +1,38 @@
-#include "../header/NWDAFCollectionServer.h"
 #include <memory>
 #include <thread>
 #include <chrono>
 #include <iostream>
+#include "Logger.h"
+#include "NWDAFCollectionServer.h"
 
 NWDAFCollectionServer::NWDAFCollectionServer()
-    : mNWDAFCollector(mQueue), mProcessor(mQueue)
+    : mRepository(std::make_shared<PostgresEventRepository>("dbname=telemetry user=postgres host=127.0.0.1 port=5432")), 
+    /*"dbname=telemetry user=postgres password=secret host=127.0.0.1 port=5432"*/
+    mNWDAFCollector(mQueue),
+    mProcessor(mQueue, mRepository)
 {
     // Add NF collectors
-    mNWDAFCollector.addCollector(std::make_shared<AMFCollector>());
-    mNWDAFCollector.addCollector(std::make_shared<SMFCollector>());
-    mNWDAFCollector.addCollector(std::make_shared<OAMCollector>());
-    mNWDAFCollector.addCollector(std::make_shared<SliceCollector>());
+    mNWDAFCollector.addCollector(std::make_shared<AMFCollector>(mRepository));
+    mNWDAFCollector.addCollector(std::make_shared<SMFCollector>(mRepository));
+    mNWDAFCollector.addCollector(std::make_shared<OAMCollector>(mRepository));
+    mNWDAFCollector.addCollector(std::make_shared<SliceCollector>(mRepository));
 }
 
 void NWDAFCollectionServer::start() {
+    LOG_SCOPE();
     // Start data processor
     mProcessor.start();
 
     // Start NF collectors
     mNWDAFCollector.startAll();
 
-    std::cout << "NWDAF Collection Server started.\n";
 }
 
 void NWDAFCollectionServer::stop() {
+    LOG_SCOPE();
+
     // Stop NF collectors and processor
     mNWDAFCollector.stopAll();
     mProcessor.stop();
 
-    std::cout << "NWDAF Collection Server stopped.\n";
 }

@@ -1,5 +1,7 @@
-#include "../header/NWDAFCollector.h"
+#include "NWDAFCollector.h"
 #include <chrono>
+#include <iostream>
+#include "Logger.h"
 
 NWDAFCollector::NWDAFCollector(SafeQueue<std::shared_ptr<AnalyticsEvent>>& queue)
     : mAnalyticEventQueue(queue) {
@@ -15,8 +17,16 @@ void NWDAFCollector::startAll() {
         nwdafCollectorthreads.emplace_back([this, c]() {
             while (mRunning) {
                 auto event = c->collectData();
-                mAnalyticEventQueue.push(event);
-                std::this_thread::sleep_for(std::chrono::milliseconds(500));
+                if (event) {
+                    std::cout << "[NWDAFCollector] Before push the event, mAnalyticEventQueue.size: " << mAnalyticEventQueue.size() << std::endl;
+                    mAnalyticEventQueue.push(event);
+                    std::cout << "[NWDAFCollector] push the event, mAnalyticEventQueue.size: "<< mAnalyticEventQueue.size() << std::endl;
+                }
+                else
+                {
+                    std::cout << "[NWDAFCollector] event empty, mAnalyticEventQueue.size: " << mAnalyticEventQueue.size() << std::endl;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(3000));
             }
             });
     }

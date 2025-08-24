@@ -1,6 +1,7 @@
-#include "../header/3rdparty/httplib.h"
-#include "../header/NWDAF.h"
-#include "../header/SafeQueue.h"
+#include "3rdparty/httplib.h"
+#include "NWDAF.h"
+#include "SafeQueue.h"
+#include "Logger.h"
 
 #include <iostream>
 #include <thread>
@@ -44,7 +45,7 @@ void NWDAFServer::run() {
 void NWDAFServer::handleSubscribe(const httplib::Request& req, httplib::Response& res) {
     auto reqCopy = std::make_shared<httplib::Request>(req);
     dispatcherPool.submit([this, reqCopy, &res](ThreadPool& wp) {
-        processSubscribe(*reqCopy, res);
+        processSubscribe(*reqCopy);
         }, 10); // high priority
     res.status = 202;
     res.set_content(R"({"status":"processing"})", "application/json");
@@ -53,7 +54,7 @@ void NWDAFServer::handleSubscribe(const httplib::Request& req, httplib::Response
 void NWDAFServer::handleUnsubscribe(const httplib::Request& req, httplib::Response& res) {
     auto reqCopy = std::make_shared<httplib::Request>(req);
     dispatcherPool.submit([this, reqCopy, &res](ThreadPool& wp) {
-        processUnsubscribe(*reqCopy, res);
+        processUnsubscribe(*reqCopy);
         }, 5); // medium priority
     res.status = 202;
     res.set_content(R"({"status":"processing"})", "application/json");
@@ -70,67 +71,127 @@ void NWDAFServer::handleAnalyticsInfoRequest(const httplib::Request& req, httpli
 }
 
 
-// ---------------- Processing Functions ----------------
-void NWDAFServer::processSubscribe(const httplib::Request& req, httplib::Response& res) {
+
+void NWDAFServer::processSubscribe(const httplib::Request& req) {
+    std::string subId;
+    std::string notifUri;
+    int statusCode = 0;
+    json callbackResponse;
+
     try {
         json body = json::parse(req.body);
-        std::string subId = body.value("subscriptionId", "");
-        std::string notifUri = body.value("notifUri", "");
+        subId = body.value("subscriptionId", "");
+        notifUri = body.value("notifUri", "");
         std::string eventId = body.value("eventId", "");
 
+        
         if (subId.empty() || notifUri.empty() || eventId.empty()) {
-            res.status = 400;
-            res.set_content(R"({"error":"subscriptionId, notifUri and eventId required"})", "application/json");
-            return;
+            statusCode = 400;
+            callbackResponse = { {"error", "subscriptionId, notifUri and eventId required"} };
+
         }
+        else {
+            SubscriptionInfo info;
+            info.subscriptionId = subId;
+            info.notifUri = notifUri;
+            info.eventId = eventId;
+            info.analyticsFilter = body.value("analyticsFilter", json::object());
 
-        SubscriptionInfo info;
-        info.subscriptionId = subId;
-        info.notifUri = notifUri;
-        info.eventId = eventId;
-        info.analyticsFilter = body.value("analyticsFilter", json::object());
-
-        if (!subscriptionManager.addSubscription(subId, info)) {
-            res.status = 409;
-            res.set_content(R"({"error":"subscription already exists"})", "application/json");
-            return;
+            if (!subscriptionManager.addSubscription(subId, info)) {
+                statusCode = 200;
+                callbackResponse = { {{"subscriptionId", subId}, "subscription already exists"} };            
+            }
+            else {
+                statusCode = 200;
+                callbackResponse = { {"subscriptionId", subId}, {"status", "ACTIVE"} };
+            }
+            std::cout << "[NWDAF] Subscription processed: " << subId
+                << " from " << req.remote_addr << std::endl;
         }
-
-        json response = { {"subscriptionId", subId}, {"status", "ACTIVE"} };
-        res.status = 201;
-        res.set_content(response.dump(4), "application/json");
-        std::cout << "[NWDAF] Subscription created: " << subId
-            << " from " << req.remote_addr << std::endl;
+        // ---------------- Asynchronous callback ----------------
+        sendCallback(subId, notifUri, statusCode, callbackResponse.dump());
 
     }
-    catch (...) {
-        res.status = 400;
-        res.set_content(R"({"error":"invalid json"})", "application/json");
+    catch (const std::exception& e) {
+        std::cout << "[NWDAF] Subscription failed: invalid JSON: " << e.what() << std::endl;
     }
 }
 
-void NWDAFServer::processUnsubscribe(const httplib::Request& req, httplib::Response& res) {
+// ---------------- Helper function to send async HTTP callback ----------------
+void NWDAFServer::sendCallback(const std::string& subId, const std::string& notifUri, int statusCode, const std::string& payload) {
+    
+    auto [host, path] = parseNotifUri(notifUri);
+
+    std::thread([subId, notifUri, statusCode, payload, host, path ]() {
+        // Extract host and port
+        std::smatch match;
+        int port = 80;
+
+
+        std::regex url_regex(R"(http://([^:/]+)(?::(\d+))?(/.*)?)");
+        if (std::regex_match(notifUri, match, url_regex)) {
+            port = std::stoi(match[2]);
+
+        }
+        else {
+            std::cout << "Invalid URL\n";
+        }
+
+        httplib::Client cli(host.c_str());
+        cli.set_keep_alive(true);
+        cli.set_read_timeout(5, 0);
+        cli.set_write_timeout(5, 0);
+
+        auto res = cli.Post(path.c_str(), payload, "application/json");
+
+        if (res && res->status == 200) {
+            std::cout << "[NWDAF] Callback sent successfully to " << notifUri
+                << " for subscription " << subId
+                << " response code: " << statusCode << std::endl;
+        }
+        else {
+            std::cout << "[NWDAF] Failed to send callback to " << notifUri
+                << " for subscription " << subId
+                << " response code: " << statusCode << std::endl;
+        }
+        }).detach();
+}
+
+
+void NWDAFServer::processUnsubscribe(const httplib::Request& req) {
+    std::string subId;
+    std::string notifUri;
+
+    int statusCode = 0;
+    json callbackResponse;
+
     try {
         json body = json::parse(req.body);
+        notifUri = body.value("notifUri", "");
+
         std::string subId = body.value("subscriptionId", "");
         if (subId.empty()) {
-            res.status = 400;
-            res.set_content(R"({"error":"subscriptionId required"})", "application/json");
+            statusCode = 200;
+            callbackResponse = { {"success", "subscription already exists"} };
+            sendCallback(subId, notifUri, statusCode, callbackResponse.dump());
+
             return;
         }
         if (subscriptionManager.removeSubscription(subId)) {
-            res.status = 204;
+            statusCode = 200;
+            callbackResponse = { {"success", "subscription removed"} };
             std::cout << "[NWDAF] Subscription removed: " << subId
                 << " by " << req.remote_addr << std::endl;
         }
         else {
-            res.status = 404;
-            res.set_content(R"({"error":"subscription not found"})", "application/json");
+            statusCode = 200;
+            callbackResponse = { {"success", "subscription already exists"} };
         }
+        sendCallback(subId, notifUri, statusCode, callbackResponse.dump());
+
     }
     catch (...) {
-        res.status = 400;
-        res.set_content(R"({"error":"invalid json"})", "application/json");
+        std::cout << "[NWDAF] Subscription failed: invalid JSON: " << std::endl;
     }
 }
 
@@ -215,6 +276,7 @@ void NWDAFServer::processNotification(const SubscriptionInfo& info) {
     }
     else {
         std::cout << "[NWDAF] Failed to notify " << info.notifUri
+            << " path " << path.c_str() << " "
             << " for " << info.subscriptionId << std::endl;
     }
 }

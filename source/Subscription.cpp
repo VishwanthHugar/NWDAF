@@ -1,6 +1,7 @@
-#include "../header/NWDAF.h"
-#include "../header/3rdparty/httplib.h"
+#include "NWDAF.h"
+#include "3rdparty/httplib.h"
 #include <iostream>
+#include "Logger.h"
 
 
 bool SubscriptionManager::addSubscription(const std::string& id, const SubscriptionInfo& info) {

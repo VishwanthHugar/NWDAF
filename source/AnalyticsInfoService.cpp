@@ -1,5 +1,6 @@
-#include "../header/AnaticalService.h"
+#include "AnaticalService.h"
 #include <iostream>
+#include "Logger.h"
 
 AnalyticsResponse AnalyticsInfoService::requestAnalytics(const AnalyticsRequest& req) {
     AnalyticsResponse resp;

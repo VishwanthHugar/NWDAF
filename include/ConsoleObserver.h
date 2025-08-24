@@ -2,7 +2,7 @@
 #define _INCLUDE_CONSOLE_OBSERVER_H
 
 #include "IObserver.h"
-#include "../include/Logger.h"
+#include "Logger.h"
 #include <iostream>
 
 class ConsoleObserver : public IObserver {

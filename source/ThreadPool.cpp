@@ -1,4 +1,5 @@
-#include "../header/ThreadPool.h"
+#include "ThreadPool.h"
+#include "Logger.h"
 
 ThreadPool::ThreadPool(size_t numThreads) : running(true) {
     for (size_t i = 0; i < numThreads; ++i)
